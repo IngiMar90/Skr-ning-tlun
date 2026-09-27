@@ -146,6 +146,91 @@
     if (help) help.innerHTML = 'Efri dagarnir velja hvaða dag þú ert að skoða og breyta. Undir <strong>Dagar fyrir nýjan tíma</strong> geturðu valið einn eða fleiri daga í einu; smelltu aftur á dag til að afvelja hann.';
   }
 
+  function getVisibleLesson() {
+    if (typeof lessonsForCurrentDay !== 'function') return null;
+    const lessons = lessonsForCurrentDay();
+    if (!lessons.length) return null;
+    const index = manualLessonIndex == null ? 0 : manualLessonIndex;
+    return lessons[index] || null;
+  }
+
+  function updateAllCheckboxState(allBox, lesson, item) {
+    const students = activeStudents().filter(student => item.scope !== 'student' || item.studentId === student.id);
+    if (!students.length) {
+      allBox.checked = false;
+      allBox.indeterminate = false;
+      allBox.disabled = true;
+      return;
+    }
+    const record = rec(current, lesson.id);
+    const checkedCount = students.filter(student => record.done?.[student.id]?.[item.id]).length;
+    allBox.checked = checkedCount === students.length;
+    allBox.indeterminate = checkedCount > 0 && checkedCount < students.length;
+  }
+
+  function enhanceSelectAll() {
+    const host = document.getElementById('todayHost');
+    const table = host?.querySelector('table.tbl');
+    const lesson = getVisibleLesson();
+    if (!table || !lesson || table.dataset.selectAllReady === 'true') return;
+
+    const items = lesson.items || [];
+    const thead = table.querySelector('thead');
+    if (!thead || !items.length) return;
+
+    table.dataset.selectAllReady = 'true';
+    const row = document.createElement('tr');
+    row.className = 'all-row';
+    row.innerHTML = '<th style="background:#eef2ff;font-weight:900">Allir</th>';
+
+    items.forEach(item => {
+      const cell = document.createElement('th');
+      cell.style.background = item.scope === 'student' ? '#f5f3ff' : '#eef2ff';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.className = 'check';
+      box.setAttribute('aria-label', `Velja alla í ${item.name}`);
+      box.dataset.allItem = item.id;
+      updateAllCheckboxState(box, lesson, item);
+
+      box.onchange = () => {
+        const students = activeStudents().filter(student => item.scope !== 'student' || item.studentId === student.id);
+        const record = rec(current, lesson.id);
+        students.forEach(student => {
+          record.done[student.id] ||= {};
+          record.done[student.id][item.id] = box.checked;
+          const individual = table.querySelector(`[data-done="${lesson.id}|${student.id}|${item.id}"]`);
+          if (individual) individual.checked = box.checked;
+        });
+        box.indeterminate = false;
+        save();
+      };
+
+      cell.appendChild(box);
+      row.appendChild(cell);
+    });
+
+    thead.appendChild(row);
+
+    table.querySelectorAll('[data-done]').forEach(input => {
+      input.addEventListener('change', () => {
+        requestAnimationFrame(() => {
+          items.forEach(item => {
+            const allBox = table.querySelector(`[data-all-item="${item.id}"]`);
+            if (allBox) updateAllCheckboxState(allBox, lesson, item);
+          });
+        });
+      });
+    });
+  }
+
+  function setupSelectAllObserver() {
+    const host = document.getElementById('todayHost');
+    if (!host) return;
+    new MutationObserver(() => enhanceSelectAll()).observe(host, { childList: true, subtree: true });
+    enhanceSelectAll();
+  }
+
   function setup() {
     ids.forEach(convert);
     if (!selectedDays.size) selectedDays = new Set([selectedDay]);
@@ -156,6 +241,7 @@
 
   function apply() {
     setup();
+    setupSelectAllObserver();
     const settings = document.getElementById('settings');
     if (settings) {
       new MutationObserver(() => {
