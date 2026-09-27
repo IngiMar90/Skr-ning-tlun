@@ -29,8 +29,7 @@
     input.value = formatDigits(old.value || '');
 
     input.addEventListener('input', () => {
-      const formatted = formatDigits(input.value);
-      input.value = formatted;
+      input.value = formatDigits(input.value);
       input.setCustomValidity('');
       requestAnimationFrame(() => {
         try { input.setSelectionRange(input.value.length, input.value.length); } catch {}
@@ -55,28 +54,36 @@
     if (!selectedDays.size) selectedDays.add(selectedDay);
   }
 
-  function renderMultiDays() {
-    const host = document.getElementById('days');
-    if (!host) return;
+  function ensureMultiDayHost() {
+    const form = document.querySelector('.lesson-form');
+    if (!form) return null;
+
+    let wrapper = document.getElementById('lessonDayPicker');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.id = 'lessonDayPicker';
+      wrapper.style.margin = '14px 0 10px';
+      wrapper.innerHTML = '<div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:7px">Dagar fyrir nýjan tíma</div><div id="lessonDays" class="days" style="margin:0"></div>';
+      form.parentNode.insertBefore(wrapper, form);
+    }
+    return document.getElementById('lessonDays');
+  }
+
+  function renderLessonDays() {
     ensureSelectedDays();
+    const host = ensureMultiDayHost();
+    if (!host) return;
 
     host.innerHTML = days.map((day, i) =>
-      `<button class="day ${selectedDays.has(i) ? 'active' : ''}" data-multiday="${i}" type="button">${day}</button>`
+      `<button class="day ${selectedDays.has(i) ? 'active' : ''}" data-lesson-day="${i}" type="button" aria-pressed="${selectedDays.has(i)}">${day}</button>`
     ).join('');
 
-    host.querySelectorAll('[data-multiday]').forEach(button => {
+    host.querySelectorAll('[data-lesson-day]').forEach(button => {
       button.onclick = () => {
-        const i = Number(button.dataset.multiday);
-        if (selectedDays.has(i)) {
-          if (selectedDays.size === 1) return;
-          selectedDays.delete(i);
-          if (selectedDay === i) selectedDay = [...selectedDays][0];
-        } else {
-          selectedDays.add(i);
-          selectedDay = i;
-        }
-        renderMultiDays();
-        renderLessons();
+        const i = Number(button.dataset.lessonDay);
+        if (selectedDays.has(i)) selectedDays.delete(i);
+        else selectedDays.add(i);
+        renderLessonDays();
       };
     });
   }
@@ -106,8 +113,11 @@
         alert('Tími rangur.');
         return;
       }
+      if (!selectedDays.size) {
+        alert('Veldu að minnsta kosti einn dag.');
+        return;
+      }
 
-      ensureSelectedDays();
       const chosenDays = [...selectedDays].sort((a, b) => a - b);
       if (chosenDays.some(dayIndex => overlaps(dayIndex, from, to))) {
         alert('Annar tími skráður á þessum tíma.');
@@ -124,6 +134,7 @@
       toInput.value = '';
       save();
       renderLessons();
+      renderLessonDays();
       if (!document.getElementById('timetable').classList.contains('hidden')) renderTimetable();
     };
   }
@@ -132,27 +143,23 @@
     const host = document.getElementById('days');
     const card = host?.closest('.card');
     const help = card?.querySelector('p.help');
-    if (help) help.innerHTML = 'Veldu <strong>einn eða fleiri daga</strong>, skrifaðu inn upphaf og lok tíma og búðu síðan til tímann. Valdir dagar eru bláir.';
+    if (help) help.innerHTML = 'Efri dagarnir velja hvaða dag þú ert að skoða og breyta. Undir <strong>Dagar fyrir nýjan tíma</strong> geturðu valið einn eða fleiri daga í einu; smelltu aftur á dag til að afvelja hann.';
+  }
+
+  function setup() {
+    ids.forEach(convert);
+    if (!selectedDays.size) selectedDays = new Set([selectedDay]);
+    renderLessonDays();
+    updateHelpText();
+    installLessonCreation();
   }
 
   function apply() {
-    ids.forEach(convert);
-    selectedDays = new Set([selectedDay]);
-    renderDays = renderMultiDays;
-    renderMultiDays();
-    updateHelpText();
-    installLessonCreation();
-
+    setup();
     const settings = document.getElementById('settings');
     if (settings) {
       new MutationObserver(() => {
-        if (!settings.classList.contains('hidden')) {
-          selectedDays = new Set([selectedDay]);
-          ids.forEach(convert);
-          renderMultiDays();
-          updateHelpText();
-          installLessonCreation();
-        }
+        if (!settings.classList.contains('hidden')) setup();
       }).observe(settings, { attributes: true, attributeFilter: ['class'] });
     }
   }
