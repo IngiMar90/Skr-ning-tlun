@@ -6,10 +6,10 @@
     return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
   }
 
-  function formatValue(raw) {
-    let digits = String(raw || '').replace(/\D/g, '').slice(0, 4);
-    if (digits.length > 2) digits = digits.slice(0, 2) + ':' + digits.slice(2);
-    return digits;
+  function formatDigits(raw) {
+    const digits = String(raw || '').replace(/\D/g, '').slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return digits.slice(0, 2) + ':' + digits.slice(2);
   }
 
   function convert(id) {
@@ -26,15 +26,20 @@
     input.placeholder = id === 'lessonFrom' ? '08:30' : '09:10';
     input.setAttribute('aria-label', id === 'lessonFrom' ? 'Frá klukkan, 24 tíma snið' : 'Til klukkan, 24 tíma snið');
     input.dataset.clock24 = 'true';
-    input.value = old.value || '';
+    input.value = formatDigits(old.value || '');
 
     input.addEventListener('input', () => {
-      input.value = formatValue(input.value);
+      const formatted = formatDigits(input.value);
+      input.value = formatted;
       input.setCustomValidity('');
+      requestAnimationFrame(() => {
+        try { input.setSelectionRange(input.value.length, input.value.length); } catch {}
+      });
     });
 
     input.addEventListener('blur', () => {
       if (!input.value) return;
+      input.value = formatDigits(input.value);
       if (!valid24(input.value)) {
         input.setCustomValidity('Tími rangur.');
         input.reportValidity();
@@ -86,8 +91,12 @@
 
     button.onclick = () => {
       const name = document.getElementById('lessonName').value.trim();
-      const from = document.getElementById('lessonFrom').value.trim();
-      const to = document.getElementById('lessonTo').value.trim();
+      const fromInput = document.getElementById('lessonFrom');
+      const toInput = document.getElementById('lessonTo');
+      const from = formatDigits(fromInput.value.trim());
+      const to = formatDigits(toInput.value.trim());
+      fromInput.value = from;
+      toInput.value = to;
 
       if (!name) {
         alert('Skráðu heiti tíma.');
@@ -107,19 +116,12 @@
 
       chosenDays.forEach(dayIndex => {
         db.schedule[dayIndex] ||= [];
-        db.schedule[dayIndex].push({
-          id: uid(),
-          name,
-          from,
-          to,
-          items: [],
-          open: true
-        });
+        db.schedule[dayIndex].push({ id: uid(), name, from, to, items: [], open: true });
       });
 
       document.getElementById('lessonName').value = '';
-      document.getElementById('lessonFrom').value = '';
-      document.getElementById('lessonTo').value = '';
+      fromInput.value = '';
+      toInput.value = '';
       save();
       renderLessons();
       if (!document.getElementById('timetable').classList.contains('hidden')) renderTimetable();
