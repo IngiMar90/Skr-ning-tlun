@@ -33,7 +33,7 @@ jobs:
           s = p.read_text(encoding='utf-8')
 
           old_nav = '<button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Í dag</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date"><span id="dateLabel" class="date-label"></span>'
-          new_nav = '<button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Mánudagur</button><button id="currentTimeBtn" class="btn primary">Núverandi tími</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date">'
+          new_nav = '<button id="currentTimeBtn" class="btn primary">Núverandi tími</button><button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Mánudagur</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date">'
           s = s.replace(old_nav, new_nav)
 
           old_render = "function renderToday(){date.value=current;dateLabel.textContent=pretty(current);const host=todayHost,"
