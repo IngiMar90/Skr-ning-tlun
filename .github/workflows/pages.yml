@@ -23,8 +23,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Force 24-hour time fields
-        run: python -c "from pathlib import Path; p=Path('index.html'); s=p.read_text(encoding='utf-8'); s=s.replace('</body>', '<script src=\"force24.js?v=${{ github.sha }}\"></script></body>'); p.write_text(s, encoding='utf-8')"
+      - name: Patch deployed interface
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old_nav = '<button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Í dag</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date"><span id="dateLabel" class="date-label"></span>'
+          new_nav = '<button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Mánudagur</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date">'
+          s = s.replace(old_nav, new_nav)
+          old_render = "function renderToday(){date.value=current;dateLabel.textContent=pretty(current);const host=todayHost,"
+          new_render = "function renderToday(){date.value=current;todayBtn.textContent=days[dayIndex(current)];todayBtn.classList.toggle('primary',current===todayIso());const host=todayHost,"
+          s = s.replace(old_render, new_render)
+          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script></body>')
+          p.write_text(s, encoding='utf-8')
+          PY
       - name: Setup Pages
         uses: actions/configure-pages@v6
         with:
