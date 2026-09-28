@@ -61,7 +61,7 @@ jobs:
           if '.install-app{' not in s:
               s = s.replace('</style>', extra_css + '</style>', 1)
 
-          qr_panel = '''<div class="panel share-app"><img src="app-qr.svg" alt="QR-kóði sem opnar Námskráningu"><div class="share-app-copy"><h3>Opna í öðru tæki</h3><p>Skannaðu QR-kóðann með myndavél á síma eða spjaldtölvu, eða opnaðu slóðina beint.</p><a class="app-url" href="https://ingimar90.github.io/Skr-ning-tlun/" target="_blank" rel="noopener">ingimar90.github.io/Skr-ning-tlun/</a></div></div>'''
+          qr_panel = '''<div class="panel share-app"><img src="app-qr.svg?v=${{ github.sha }}" alt="QR-kóði sem opnar Námskráningu"><div class="share-app-copy"><h3>Opna í öðru tæki</h3><p>Skannaðu QR-kóðann með myndavél á síma eða spjaldtölvu, eða opnaðu slóðina beint.</p><a class="app-url" href="https://ingimar90.github.io/Skr-ning-tlun/" target="_blank" rel="noopener">ingimar90.github.io/Skr-ning-tlun/</a></div></div>'''
 
           install_panel = '''<div class="panel install-app"><img src="app-icon.svg" alt="Námskráning app-tákn"><div class="install-app-copy"><h3>Vista sem app</h3><p>Settu Námskráningu á heimaskjá spjaldtölvunnar eða símans og opnaðu hana síðan eins og venjulegt app.</p><div class="install-actions"><button id="installAppBtn" class="btn primary" type="button">Setja upp app</button></div><p id="installAppNote" class="install-note hidden"></p></div></div>'''
 
