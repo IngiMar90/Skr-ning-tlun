@@ -12,6 +12,21 @@
     return digits.slice(0, 2) + ':' + digits.slice(2);
   }
 
+  function sortItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items.sort((a, b) => {
+      const aPersonal = a.scope === 'student' ? 1 : 0;
+      const bPersonal = b.scope === 'student' ? 1 : 0;
+      return aPersonal - bPersonal;
+    });
+  }
+
+  function normalizeItemOrder() {
+    Object.values(db.schedule || {}).flat().forEach(lesson => {
+      if (lesson?.items) sortItems(lesson.items);
+    });
+  }
+
   function convert(id) {
     const old = document.getElementById(id);
     if (!old || old.dataset.clock24 === 'true') return;
@@ -174,7 +189,7 @@
     const lesson = getVisibleLesson();
     if (!table || !lesson || table.dataset.selectAllReady === 'true') return;
 
-    const items = lesson.items || [];
+    const items = sortItems(lesson.items || []);
     const thead = table.querySelector('thead');
     if (!thead || !items.length) return;
 
@@ -231,6 +246,40 @@
     enhanceSelectAll();
   }
 
+  function wrapRenderers() {
+    normalizeItemOrder();
+
+    if (typeof renderToday === 'function' && !renderToday.__sortedItems) {
+      const originalRenderToday = renderToday;
+      renderToday = function() {
+        normalizeItemOrder();
+        return originalRenderToday.apply(this, arguments);
+      };
+      renderToday.__sortedItems = true;
+    }
+
+    if (typeof renderLessons === 'function' && !renderLessons.__sortedItems) {
+      const originalRenderLessons = renderLessons;
+      renderLessons = function() {
+        normalizeItemOrder();
+        return originalRenderLessons.apply(this, arguments);
+      };
+      renderLessons.__sortedItems = true;
+    }
+
+    if (typeof addItem === 'function' && !addItem.__sortedItems) {
+      const originalAddItem = addItem;
+      addItem = function() {
+        const result = originalAddItem.apply(this, arguments);
+        normalizeItemOrder();
+        save();
+        renderLessons();
+        return result;
+      };
+      addItem.__sortedItems = true;
+    }
+  }
+
   function setup() {
     ids.forEach(convert);
     if (!selectedDays.size) selectedDays = new Set([selectedDay]);
@@ -240,6 +289,7 @@
   }
 
   function apply() {
+    wrapRenderers();
     setup();
     setupSelectAllObserver();
     const settings = document.getElementById('settings');
