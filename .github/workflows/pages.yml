@@ -35,11 +35,32 @@ jobs:
           old_render = "function renderToday(){date.value=current;dateLabel.textContent=pretty(current);const host=todayHost,"
           new_render = "function renderToday(){date.value=current;todayBtn.textContent=days[dayIndex(current)];todayBtn.classList.toggle('primary',current===todayIso());const host=todayHost,"
           s = s.replace(old_render, new_render)
-          s = s.replace("const host=todayHost,lessons=lessonsForCurrentDay(),studs=activeStudents();", "const host=todayHost,lessons=lessonsForCurrentDay(),studs=activeStudents().slice().sort((a,b)=>a.name.localeCompare(b.name,'is',{sensitivity:'base'}));")
           s = s.replace('<button id="prevLesson" class="btn arrow" ${manualLessonIndex===0?\'disabled\':\'\'}>←</button>', '<button id="prevLesson" class="btn arrow" ${manualLessonIndex===0?\'disabled\':\'\'}>← <span style="font-size:14px">Síðasti tími</span></button>')
           s = s.replace('<button id="nextLesson" class="btn arrow" ${manualLessonIndex===lessons.length-1?\'disabled\':\'\'}>→</button>', '<button id="nextLesson" class="btn arrow" ${manualLessonIndex===lessons.length-1?\'disabled\':\'\'}><span style="font-size:14px">Næsti tími</span> →</button>')
           s = s.replace('.lesson-nav .arrow{width:48px;height:48px;border-radius:14px;font-size:24px}', '.lesson-nav .arrow{min-width:135px;height:48px;border-radius:14px;font-size:22px;display:flex;align-items:center;justify-content:center;gap:8px}')
-          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script></body>')
+          sorter = '''<script>
+          (()=>{
+            const collator=new Intl.Collator('is',{sensitivity:'base'});
+            function sortDailyStudents(){
+              const tbody=document.querySelector('#todayHost table.tbl tbody');
+              if(!tbody)return;
+              const rows=[...tbody.querySelectorAll(':scope > tr')];
+              const sorted=[...rows].sort((a,b)=>{
+                const an=(a.cells[0]?.textContent||'').trim();
+                const bn=(b.cells[0]?.textContent||'').trim();
+                return collator.compare(an,bn);
+              });
+              const changed=rows.some((row,i)=>row!==sorted[i]);
+              if(changed) sorted.forEach(row=>tbody.appendChild(row));
+            }
+            const host=document.getElementById('todayHost');
+            if(host)new MutationObserver(()=>sortDailyStudents()).observe(host,{childList:true,subtree:true});
+            const original=window.renderToday;
+            if(typeof original==='function')window.renderToday=function(){const r=original.apply(this,arguments);requestAnimationFrame(sortDailyStudents);return r};
+            sortDailyStudents();
+          })();
+          </script>'''
+          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script>'+sorter+'</body>')
           p.write_text(s, encoding='utf-8')
           PY
       - name: Setup Pages
