@@ -33,7 +33,7 @@ jobs:
           s = p.read_text(encoding='utf-8')
 
           old_nav = '<button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Í dag</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date"><span id="dateLabel" class="date-label"></span>'
-          new_nav = '<button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Mánudagur</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date">'
+          new_nav = '<button id="prev" class="btn">‹ Dagur</button><button id="todayBtn" class="btn primary">Mánudagur</button><button id="currentTimeBtn" class="btn primary">Núverandi tími</button><button id="next" class="btn">Dagur ›</button><input id="date" class="text" type="date">'
           s = s.replace(old_nav, new_nav)
 
           old_render = "function renderToday(){date.value=current;dateLabel.textContent=pretty(current);const host=todayHost,"
@@ -240,7 +240,36 @@ jobs:
           })();
           </script>'''
 
-          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script>'+sorter+installer+fullscreen+'</body>')
+          current_time_nav = '''<script>
+          (()=>{
+            const btn=document.getElementById('currentTimeBtn');
+            if(!btn)return;
+
+            const style=document.createElement('style');
+            style.textContent=`
+              #currentTimeBtn{white-space:nowrap}
+              @media(max-width:899px){
+                .date-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+                .date-nav #date{grid-column:1/-1!important}
+              }
+              @media(max-width:620px){
+                .date-nav{grid-template-columns:1fr 1fr!important}
+                .date-nav #date{grid-column:1/-1!important}
+              }
+            `;
+            document.head.appendChild(style);
+
+            btn.addEventListener('click',()=>{
+              current=todayIso();
+              const lessons=lessonsForCurrentDay();
+              const runningIndex=lessons.findIndex(lesson=>isCurrentLesson(lesson,current));
+              manualLessonIndex=runningIndex>=0?runningIndex:(lessons.length?defaultLessonIndex(lessons):0);
+              renderToday();
+            });
+          })();
+          </script>'''
+
+          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script>'+sorter+installer+fullscreen+current_time_nav+'</body>')
           p.write_text(s, encoding='utf-8')
           PY
       - name: Setup Pages
