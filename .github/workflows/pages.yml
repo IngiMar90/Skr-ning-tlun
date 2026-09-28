@@ -35,6 +35,7 @@ jobs:
           old_render = "function renderToday(){date.value=current;dateLabel.textContent=pretty(current);const host=todayHost,"
           new_render = "function renderToday(){date.value=current;todayBtn.textContent=days[dayIndex(current)];todayBtn.classList.toggle('primary',current===todayIso());const host=todayHost,"
           s = s.replace(old_render, new_render)
+          s = s.replace("const host=todayHost,lessons=lessonsForCurrentDay(),studs=activeStudents();", "const host=todayHost,lessons=lessonsForCurrentDay(),studs=activeStudents().slice().sort((a,b)=>a.name.localeCompare(b.name,'is',{sensitivity:'base'}));")
           s = s.replace('<button id="prevLesson" class="btn arrow" ${manualLessonIndex===0?\'disabled\':\'\'}>←</button>', '<button id="prevLesson" class="btn arrow" ${manualLessonIndex===0?\'disabled\':\'\'}>← <span style="font-size:14px">Síðasti tími</span></button>')
           s = s.replace('<button id="nextLesson" class="btn arrow" ${manualLessonIndex===lessons.length-1?\'disabled\':\'\'}>→</button>', '<button id="nextLesson" class="btn arrow" ${manualLessonIndex===lessons.length-1?\'disabled\':\'\'}><span style="font-size:14px">Næsti tími</span> →</button>')
           s = s.replace('.lesson-nav .arrow{width:48px;height:48px;border-radius:14px;font-size:24px}', '.lesson-nav .arrow{min-width:135px;height:48px;border-radius:14px;font-size:22px;display:flex;align-items:center;justify-content:center;gap:8px}')
