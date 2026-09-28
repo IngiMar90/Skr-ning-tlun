@@ -22,7 +22,7 @@
         return (aPersonal - bPersonal) || (a.index - b.index);
       })
       .map(x => x.item)
-      .map((item, index, ordered) => {
+      .map((item, index) => {
         items[index] = item;
         return item;
       });
@@ -166,6 +166,17 @@
     const card = host?.closest('.card');
     const help = card?.querySelector('p.help');
     if (help) help.innerHTML = 'Efri dagarnir velja hvaða dag þú ert að skoða og breyta. Undir <strong>Dagar fyrir nýjan tíma</strong> geturðu valið einn eða fleiri daga í einu; smelltu aftur á dag til að afvelja hann.';
+  }
+
+  function updateDailyDayHeader() {
+    const button = document.getElementById('todayBtn');
+    const label = document.getElementById('dateLabel');
+    if (label) label.style.display = 'none';
+    if (!button || !current) return;
+    button.textContent = days[dayIndex(current)];
+    const isToday = current === todayIso();
+    button.classList.toggle('primary', isToday);
+    button.setAttribute('aria-current', isToday ? 'date' : 'false');
   }
 
   function getVisibleLesson() {
@@ -321,13 +332,15 @@
   function wrapRenderers() {
     normalizeItemOrder();
 
-    if (typeof renderToday === 'function' && !renderToday.__sortedItems) {
+    if (typeof renderToday === 'function' && !renderToday.__enhancedDailyHeader) {
       const originalRenderToday = renderToday;
       renderToday = function() {
         normalizeItemOrder();
-        return originalRenderToday.apply(this, arguments);
+        const result = originalRenderToday.apply(this, arguments);
+        updateDailyDayHeader();
+        return result;
       };
-      renderToday.__sortedItems = true;
+      renderToday.__enhancedDailyHeader = true;
     }
 
     if (typeof renderLessons === 'function' && !renderLessons.__sortedItems) {
@@ -367,6 +380,7 @@
     setup();
     setupSelectAllObserver();
     setupOrderingObserver();
+    updateDailyDayHeader();
     const settings = document.getElementById('settings');
     if (settings) {
       new MutationObserver(() => {
