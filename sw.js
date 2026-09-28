@@ -1,5 +1,5 @@
-const CACHE='namskraning-v1';
-const APP_SHELL=['./','./index.html','./force24.js','./app-qr.svg','./app-icon.svg','./manifest.webmanifest'];
+const CACHE='namskraning-v2';
+const APP_SHELL=['./','./index.html','./force24.js','./app-qr.svg','./app-icon.svg','./icon-192.svg','./icon-512.svg','./manifest.webmanifest'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)).catch(()=>{}));
