@@ -44,24 +44,37 @@ jobs:
           s = s.replace('<button id="nextLesson" class="btn arrow" ${manualLessonIndex===lessons.length-1?\'disabled\':\'\'}>→</button>', '<button id="nextLesson" class="btn arrow" ${manualLessonIndex===lessons.length-1?\'disabled\':\'\'}><span style="font-size:14px">Næsti tími</span> →</button>')
           s = s.replace('.lesson-nav .arrow{width:48px;height:48px;border-radius:14px;font-size:24px}', '.lesson-nav .arrow{min-width:135px;height:48px;border-radius:14px;font-size:22px;display:flex;align-items:center;justify-content:center;gap:8px}')
 
-          qr_css = '''
-          .share-app{margin-top:18px;padding:18px 20px;display:flex;align-items:center;gap:20px}
-          .share-app img{width:128px;height:128px;flex:0 0 auto;background:#fff;border-radius:12px;padding:7px;border:1px solid var(--line)}
-          .share-app-copy{min-width:0}.share-app h3{margin:0 0 6px}.share-app p{margin:0 0 10px;color:var(--muted);line-height:1.45}
+          pwa_head = '''<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#3559e0"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Námskráning"><link rel="icon" href="app-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.svg">'''
+          if 'manifest.webmanifest' not in s:
+              s = s.replace('</head>', pwa_head + '</head>', 1)
+
+          extra_css = '''
+          .share-app,.install-app{margin-top:18px;padding:18px 20px;display:flex;align-items:center;gap:20px}
+          .share-app img,.install-app img{width:128px;height:128px;flex:0 0 auto;background:#fff;border-radius:12px;padding:7px;border:1px solid var(--line)}
+          .share-app-copy,.install-app-copy{min-width:0}.share-app h3,.install-app h3{margin:0 0 6px}.share-app p,.install-app p{margin:0 0 10px;color:var(--muted);line-height:1.45}
           .app-url{display:inline-block;max-width:100%;overflow-wrap:anywhere;font-weight:800;color:var(--accent);text-decoration:none;padding:10px 12px;border-radius:10px;background:var(--soft)}
-          @media(max-width:700px){.share-app{align-items:flex-start}.share-app img{width:108px;height:108px}}
-          @media(max-width:500px){.share-app{flex-direction:column;align-items:center;text-align:center}.share-app img{width:150px;height:150px}.app-url{width:100%}}
+          .install-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.install-app .btn{min-height:48px;padding:12px 18px}
+          .install-note{margin-top:10px!important;padding:10px 12px;border-radius:10px;background:#f8fafc;color:var(--text)!important}.install-note.hidden{display:none!important}
+          @media(max-width:700px){.share-app,.install-app{align-items:flex-start}.share-app img,.install-app img{width:108px;height:108px}}
+          @media(max-width:500px){.share-app,.install-app{flex-direction:column;align-items:center;text-align:center}.share-app img,.install-app img{width:150px;height:150px}.app-url,.install-actions,.install-actions .btn{width:100%}}
           '''
-          if '.share-app{' not in s:
-              s = s.replace('</style>', qr_css + '</style>', 1)
+          if '.install-app{' not in s:
+              s = s.replace('</style>', extra_css + '</style>', 1)
 
           qr_panel = '''<div class="panel share-app"><img src="app-qr.svg" alt="QR-kóði sem opnar Námskráningu"><div class="share-app-copy"><h3>Opna í öðru tæki</h3><p>Skannaðu QR-kóðann með myndavél á síma eða spjaldtölvu, eða opnaðu slóðina beint.</p><a class="app-url" href="https://ingimar90.github.io/Skr-ning-tlun/" target="_blank" rel="noopener">ingimar90.github.io/Skr-ning-tlun/</a></div></div>'''
 
-          if 'class="panel share-app"' not in s:
+          install_panel = '''<div class="panel install-app"><img src="app-icon.svg" alt="Námskráning app-tákn"><div class="install-app-copy"><h3>Vista sem app</h3><p>Settu Námskráningu á heimaskjá spjaldtölvunnar eða símans og opnaðu hana síðan eins og venjulegt app.</p><div class="install-actions"><button id="installAppBtn" class="btn primary" type="button">Setja upp app</button></div><p id="installAppNote" class="install-note hidden"></p></div></div>'''
+
+          if 'class="panel share-app"' not in s or 'class="panel install-app"' not in s:
               match = re.search(r'(<section id="home" class="view">.*?)(</section>\s*<section id="today")', s, flags=re.S)
               if not match:
-                  raise RuntimeError('Could not locate home section for QR panel insertion')
-              replacement = match.group(1) + qr_panel + match.group(2)
+                  raise RuntimeError('Could not locate home section for share/install panels')
+              home = match.group(1)
+              if 'class="panel share-app"' not in home:
+                  home += qr_panel
+              if 'class="panel install-app"' not in home:
+                  home += install_panel
+              replacement = home + match.group(2)
               s = s[:match.start()] + replacement + s[match.end():]
 
           sorter = '''<script>
@@ -87,7 +100,76 @@ jobs:
           })();
           </script>'''
 
-          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script>'+sorter+'</body>')
+          installer = '''<script>
+          (()=>{
+            let deferredPrompt=null;
+            const btn=document.getElementById('installAppBtn');
+            const note=document.getElementById('installAppNote');
+            const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+            const isiOS=/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+
+            if('serviceWorker' in navigator){
+              window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+            }
+
+            function showNote(html){
+              if(!note)return;
+              note.innerHTML=html;
+              note.classList.remove('hidden');
+            }
+
+            if(!btn)return;
+
+            if(standalone){
+              btn.textContent='Appið er uppsett';
+              btn.disabled=true;
+              showNote('Þú ert nú þegar að nota Námskráningu sem uppsett app.');
+              return;
+            }
+
+            if(isiOS){
+              btn.textContent='Hvernig vista ég appið?';
+              showNote('Á iPad/iPhone: opnaðu síðuna í Safari, ýttu á <strong>Deila</strong> ⬆ og veldu <strong>Bæta við heimaskjá</strong>.');
+            }else{
+              btn.disabled=false;
+            }
+
+            window.addEventListener('beforeinstallprompt',event=>{
+              event.preventDefault();
+              deferredPrompt=event;
+              btn.disabled=false;
+              btn.textContent='Setja upp app';
+              showNote('Ýttu á <strong>Setja upp app</strong> til að bæta Námskráningu á heimaskjáinn.');
+            });
+
+            btn.addEventListener('click',async()=>{
+              if(deferredPrompt){
+                deferredPrompt.prompt();
+                const choice=await deferredPrompt.userChoice;
+                deferredPrompt=null;
+                if(choice.outcome==='accepted'){
+                  btn.textContent='Appið er uppsett';
+                  btn.disabled=true;
+                  showNote('Námskráning hefur verið sett upp og ætti nú að birtast meðal appanna þinna.');
+                }
+                return;
+              }
+              if(isiOS){
+                showNote('Á iPad/iPhone: <strong>Safari → Deila ⬆ → Bæta við heimaskjá → Bæta við</strong>. Þá opnast Námskráning eins og venjulegt app.');
+              }else{
+                showNote('Ef uppsetningarglugginn birtist ekki skaltu opna valmynd vafrans (⋮) og velja <strong>Setja upp app</strong> eða <strong>Bæta við heimaskjá</strong>.');
+              }
+            });
+
+            window.addEventListener('appinstalled',()=>{
+              btn.textContent='Appið er uppsett';
+              btn.disabled=true;
+              showNote('Námskráning er nú uppsett á tækinu.');
+            });
+          })();
+          </script>'''
+
+          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script>'+sorter+installer+'</body>')
           p.write_text(s, encoding='utf-8')
           PY
       - name: Setup Pages
