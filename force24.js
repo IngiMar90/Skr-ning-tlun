@@ -34,6 +34,158 @@
     });
   }
 
+  function injectTabletStyles() {
+    if (document.getElementById('tabletTouchStyles')) return;
+
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) viewport.setAttribute('content', 'width=device-width,initial-scale=1,viewport-fit=cover');
+
+    const style = document.createElement('style');
+    style.id = 'tabletTouchStyles';
+    style.textContent = `
+      html { -webkit-text-size-adjust: 100%; }
+      body { overscroll-behavior-y: contain; }
+      button, .btn, .day, .back, input, select, label.btn {
+        min-height: 46px;
+      }
+      button, .btn, .day, .back, label.btn {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+      input, select, textarea { font-size: 16px; }
+      .check { width: 34px !important; height: 34px !important; cursor: pointer; }
+      .shell {
+        width: 100%;
+        max-width: 1600px;
+        padding-left: max(18px, env(safe-area-inset-left));
+        padding-right: max(18px, env(safe-area-inset-right));
+        padding-top: max(18px, env(safe-area-inset-top));
+        padding-bottom: max(18px, env(safe-area-inset-bottom));
+      }
+      .home-card { min-height: 150px; touch-action: manipulation; }
+      .home-card:active, .btn:active, .day:active, .back:active { transform: scale(.985); }
+      .date-nav { row-gap: 10px; }
+      .date-nav .btn, .date-nav .text { min-height: 48px; }
+      .days { gap: 9px; }
+      .day { padding: 10px 14px; }
+      .lesson-tools .btn, .task .btn { min-width: 48px; }
+      .lesson-nav .arrow {
+        width: auto !important;
+        min-width: 140px !important;
+        min-height: 52px !important;
+        padding: 10px 14px !important;
+      }
+      .table-wrap, .schedule-wrap {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        scrollbar-gutter: stable;
+      }
+      .table-wrap { touch-action: pan-x pan-y; }
+      .tbl th, .tbl td { min-height: 52px; padding: 12px 14px; }
+      .tbl th:not(:first-child), .tbl td:not(:first-child) { min-width: 150px; }
+      .tbl th:first-child, .tbl td:first-child {
+        min-width: 170px;
+        z-index: 2;
+        box-shadow: 4px 0 8px rgba(16,24,40,.05);
+      }
+      .tbl thead th { position: sticky; top: 0; z-index: 3; }
+      .tbl thead th:first-child { z-index: 4; }
+      .week-grid { min-width: 0 !important; }
+
+      @media (min-width: 1200px) {
+        .home-grid { grid-template-columns: repeat(5, 1fr); }
+      }
+
+      @media (min-width: 900px) and (max-width: 1199px) {
+        .home-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        .grid2 { grid-template-columns: minmax(260px,.75fr) minmax(0,1.25fr) !important; }
+        .week-grid { grid-template-columns: repeat(4, minmax(0,1fr)) !important; }
+        .lesson-form { grid-template-columns: minmax(220px,1.3fr) minmax(120px,.6fr) minmax(120px,.6fr) auto !important; }
+        .item-form { grid-template-columns: minmax(180px,1.2fr) minmax(150px,.7fr) minmax(180px,1fr) auto !important; }
+      }
+
+      @media (max-width: 899px) {
+        .shell { padding: 14px; }
+        .topbar { gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+        .brand h1 { font-size: 21px; }
+        .brand p { font-size: 13px; }
+        .panel { padding: 16px; }
+        .home-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 12px; }
+        .home-card { min-height: 135px; padding: 18px; }
+        .grid2, .export-grid { grid-template-columns: 1fr !important; }
+        .week-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 10px; }
+        .lesson-form, .item-form { grid-template-columns: 1fr 1fr !important; }
+        .lesson-form .btn, .item-form .btn { grid-column: span 2; }
+        .view-head { align-items: stretch; }
+        .view-head > .date-nav { width: 100%; }
+        .date-nav { display: grid !important; grid-template-columns: 1fr 1fr 1fr; width: 100%; }
+        .date-nav #date { grid-column: 1 / -1; width: 100%; }
+        .lesson-head { gap: 12px; }
+        .lesson-tools { justify-content: flex-end; }
+        .summary { grid-template-columns: repeat(3,1fr) !important; }
+      }
+
+      @media (max-width: 620px) {
+        .shell { padding: 10px; }
+        .panel { padding: 12px; border-radius: 14px; }
+        .topbar { margin-bottom: 12px; }
+        .brand .logo { width: 40px; height: 40px; }
+        .brand p { display: none; }
+        .home-grid { grid-template-columns: 1fr !important; }
+        .home-card { min-height: 112px; }
+        .home-card h2 { font-size: 19px; }
+        .view-head { gap: 10px; }
+        .title { width: 100%; }
+        .title h2 { font-size: 20px; }
+        .date-nav { grid-template-columns: 1fr 1.1fr 1fr; }
+        .date-nav .btn { padding-left: 8px; padding-right: 8px; }
+        .lesson-form, .item-form { grid-template-columns: 1fr !important; }
+        .lesson-form .btn, .item-form .btn { grid-column: auto; }
+        .lesson-head { flex-direction: column; }
+        .lesson-tools { width: 100%; }
+        .lesson-tools .btn { flex: 1; }
+        .task { flex-wrap: wrap; }
+        .task .grow { flex-basis: 100%; }
+        .lesson-nav {
+          grid-template-columns: 1fr 1fr !important;
+          grid-template-areas: 'center center' 'prev next';
+          gap: 8px;
+        }
+        .lesson-nav-center { grid-area: center; }
+        #prevLesson { grid-area: prev; }
+        #nextLesson { grid-area: next; }
+        .lesson-nav .arrow { min-width: 0 !important; width: 100% !important; }
+        .tbl th:first-child, .tbl td:first-child { min-width: 130px; max-width: 150px; }
+        .tbl th:not(:first-child), .tbl td:not(:first-child) { min-width: 140px; }
+        .tbl th, .tbl td { padding: 10px; }
+        .check { width: 36px !important; height: 36px !important; }
+        .week-grid { grid-template-columns: 1fr !important; }
+        .summary { grid-template-columns: 1fr !important; }
+        .filters { align-items: stretch; }
+        .filters .field, .filters .btn { width: 100%; }
+        .add-student { grid-template-columns: 1fr !important; }
+        .list-item { flex-wrap: wrap; }
+      }
+
+      @media (orientation: landscape) and (max-height: 600px) {
+        .shell { padding-top: 10px; padding-bottom: 10px; }
+        .topbar { margin-bottom: 10px; }
+        .home-card { min-height: 110px; }
+        .panel { padding-top: 12px; padding-bottom: 12px; }
+        .view-head { margin-bottom: 10px; }
+        .lesson-nav { margin-bottom: 8px; }
+      }
+
+      @media (pointer: coarse) {
+        .btn, .day, .back, .home-card, label.btn { min-height: 48px; }
+        .task { padding-top: 10px; padding-bottom: 10px; }
+        .list-item { padding: 11px; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function convert(id) {
     const old = document.getElementById(id);
     if (!old || old.dataset.clock24 === 'true') return;
@@ -376,6 +528,7 @@
   }
 
   function apply() {
+    injectTabletStyles();
     wrapRenderers();
     setup();
     setupSelectAllObserver();
