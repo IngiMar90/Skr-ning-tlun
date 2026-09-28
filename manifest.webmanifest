@@ -1,0 +1,20 @@
+{
+  "name": "Námskráning",
+  "short_name": "Námskráning",
+  "description": "Vikuskipulag og dagleg skráning fyrir kennara.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f7fb",
+  "theme_color": "#3559e0",
+  "lang": "is",
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
