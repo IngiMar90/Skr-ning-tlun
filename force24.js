@@ -14,11 +14,18 @@
 
   function sortItems(items) {
     if (!Array.isArray(items)) return [];
-    return items.sort((a, b) => {
-      const aPersonal = a.scope === 'student' ? 1 : 0;
-      const bPersonal = b.scope === 'student' ? 1 : 0;
-      return aPersonal - bPersonal;
-    });
+    return items
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const aPersonal = a.item.scope === 'student' ? 1 : 0;
+        const bPersonal = b.item.scope === 'student' ? 1 : 0;
+        return (aPersonal - bPersonal) || (a.index - b.index);
+      })
+      .map(x => x.item)
+      .map((item, index, ordered) => {
+        items[index] = item;
+        return item;
+      });
   }
 
   function normalizeItemOrder() {
@@ -246,6 +253,71 @@
     enhanceSelectAll();
   }
 
+  function moveItemWithinScope(lessonId, itemId, direction) {
+    const lesson = (db.schedule[selectedDay] || []).find(x => x.id === lessonId);
+    if (!lesson?.items) return;
+    sortItems(lesson.items);
+    const index = lesson.items.findIndex(x => x.id === itemId);
+    if (index < 0) return;
+    const item = lesson.items[index];
+    const target = index + direction;
+    if (target < 0 || target >= lesson.items.length) return;
+    if (lesson.items[target].scope !== item.scope) return;
+    [lesson.items[index], lesson.items[target]] = [lesson.items[target], lesson.items[index]];
+    save();
+    renderLessons();
+  }
+
+  function enhanceItemOrdering() {
+    const host = document.getElementById('lessons');
+    if (!host) return;
+
+    host.querySelectorAll('.task').forEach(task => {
+      if (task.dataset.orderReady === 'true') return;
+      const del = task.querySelector('[data-del-item]');
+      if (!del) return;
+      const [lessonId, itemId] = del.dataset.delItem.split('|');
+      const lesson = (db.schedule[selectedDay] || []).find(x => x.id === lessonId);
+      const item = lesson?.items?.find(x => x.id === itemId);
+      if (!lesson || !item) return;
+
+      sortItems(lesson.items);
+      const sameScope = lesson.items.filter(x => x.scope === item.scope);
+      const pos = sameScope.findIndex(x => x.id === itemId);
+
+      const controls = document.createElement('span');
+      controls.style.display = 'inline-flex';
+      controls.style.gap = '4px';
+
+      const up = document.createElement('button');
+      up.type = 'button';
+      up.className = 'btn';
+      up.textContent = '↑';
+      up.title = 'Færa upp';
+      up.disabled = pos <= 0;
+      up.onclick = () => moveItemWithinScope(lessonId, itemId, -1);
+
+      const down = document.createElement('button');
+      down.type = 'button';
+      down.className = 'btn';
+      down.textContent = '↓';
+      down.title = 'Færa niður';
+      down.disabled = pos < 0 || pos >= sameScope.length - 1;
+      down.onclick = () => moveItemWithinScope(lessonId, itemId, 1);
+
+      controls.append(up, down);
+      task.insertBefore(controls, del);
+      task.dataset.orderReady = 'true';
+    });
+  }
+
+  function setupOrderingObserver() {
+    const host = document.getElementById('lessons');
+    if (!host) return;
+    new MutationObserver(() => enhanceItemOrdering()).observe(host, { childList: true, subtree: true });
+    enhanceItemOrdering();
+  }
+
   function wrapRenderers() {
     normalizeItemOrder();
 
@@ -262,7 +334,9 @@
       const originalRenderLessons = renderLessons;
       renderLessons = function() {
         normalizeItemOrder();
-        return originalRenderLessons.apply(this, arguments);
+        const result = originalRenderLessons.apply(this, arguments);
+        requestAnimationFrame(enhanceItemOrdering);
+        return result;
       };
       renderLessons.__sortedItems = true;
     }
@@ -292,6 +366,7 @@
     wrapRenderers();
     setup();
     setupSelectAllObserver();
+    setupOrderingObserver();
     const settings = document.getElementById('settings');
     if (settings) {
       new MutationObserver(() => {
