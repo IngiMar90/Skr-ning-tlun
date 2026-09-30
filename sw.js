@@ -1,5 +1,5 @@
-const CACHE='namskraning-v3';
-const APP_SHELL=['./','./index.html','./force24.js','./sticky-header.js','./app-qr.svg','./app-icon.svg','./icon-192.svg','./icon-512.svg','./manifest.webmanifest'];
+const CACHE='namskraning-v4-ipad-touch';
+const APP_SHELL=['./','./index.html','./force24.js','./sticky-header.js','./ipad-touch-fix.js','./app-qr.svg','./app-icon.svg','./icon-192.svg','./icon-512.svg','./manifest.webmanifest'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)).catch(()=>{}));
@@ -13,13 +13,16 @@ self.addEventListener('activate',event=>{
   );
 });
 
-async function withFloatingHeader(response){
+async function enhanceHtml(response){
   if(!response || !response.ok) return response;
   const type=response.headers.get('content-type')||'';
   if(!type.includes('text/html')) return response;
   let html=await response.text();
   if(!html.includes('sticky-header.js')){
-    html=html.replace('</body>','<script src="sticky-header.js?v=3"></script></body>');
+    html=html.replace('</body>','<script src="sticky-header.js?v=4"></script></body>');
+  }
+  if(!html.includes('ipad-touch-fix.js')){
+    html=html.replace('</body>','<script src="ipad-touch-fix.js?v=1"></script></body>');
   }
   const headers=new Headers(response.headers);
   headers.set('content-type','text/html; charset=utf-8');
@@ -33,8 +36,8 @@ self.addEventListener('fetch',event=>{
   if(request.mode==='navigate'){
     event.respondWith((async()=>{
       try{
-        const network=await fetch(request);
-        const enhanced=await withFloatingHeader(network);
+        const network=await fetch(request,{cache:'no-store'});
+        const enhanced=await enhanceHtml(network);
         const copy=enhanced.clone();
         caches.open(CACHE).then(cache=>cache.put('./index.html',copy));
         return enhanced;
