@@ -3,7 +3,7 @@
     if(document.getElementById('dailyToolsStyles'))return;
     var style=document.createElement('style');
     style.id='dailyToolsStyles';
-    style.textContent='.home-backup-actions{margin-top:18px;padding:18px 20px}.home-backup-actions h3{margin:0 0 6px}.home-backup-actions p{margin:0 0 12px;color:var(--muted)}.home-backup-buttons{display:flex;gap:10px;flex-wrap:wrap}.all-row th{background:#eef2ff!important;font-weight:900}.day-lesson.attendance .all-row{display:none!important}@media(max-width:620px){.home-backup-buttons{flex-direction:column}.home-backup-buttons .btn{width:100%}}';
+    style.textContent='.home-backup-actions{margin-top:18px;padding:18px 20px}.home-backup-actions h3{margin:0 0 6px}.home-backup-actions p{margin:0 0 12px;color:var(--muted)}.home-backup-buttons{display:flex;gap:10px;flex-wrap:wrap}.all-row th{background:#eef2ff!important;font-weight:900}.all-row input[data-bulk-all]{pointer-events:auto!important;opacity:1!important;cursor:pointer}.day-lesson.attendance .all-row{display:none!important}@media(max-width:620px){.home-backup-buttons{flex-direction:column}.home-backup-buttons .btn{width:100%}}';
     document.head.appendChild(style);
   }
 
@@ -59,6 +59,8 @@
   function removeWrongAttendanceAll(){
     var attendance=document.querySelector('#todayHost .day-lesson.attendance');
     if(!attendance)return false;
+    var table=attendance.querySelector('table.tbl');
+    if(table)table.dataset.selectAllReady='true';
     var rows=attendance.querySelectorAll('tr.all-row');
     for(var i=0;i<rows.length;i++)rows[i].remove();
     return true;
@@ -73,6 +75,16 @@
     box.indeterminate=checked>0&&checked<inputs.length;
   }
 
+  function fireChange(input){
+    if(typeof Event==='function'){
+      input.dispatchEvent(new Event('change',{bubbles:true}));
+    }else{
+      var ev=document.createEvent('HTMLEvents');
+      ev.initEvent('change',true,false);
+      input.dispatchEvent(ev);
+    }
+  }
+
   function ensureNormalSelectAll(){
     if(removeWrongAttendanceAll())return;
     var table=document.querySelector('#todayHost table.tbl');
@@ -82,12 +94,14 @@
     var firstData=tbody.querySelector('input[data-done]');
     if(!firstData)return;
 
+    table.dataset.selectAllReady='true';
+
     var existing=thead.querySelector('tr.all-row');
     if(existing)existing.remove();
     var headerRow=thead.querySelector('tr');
     if(!headerRow)return;
     var columnCount=headerRow.children.length;
-    var row=document.createElement('tr');row.className='all-row';
+    var row=document.createElement('tr');row.className='all-row';row.dataset.dailyTools='true';
     var label=document.createElement('th');label.textContent='Allir';row.appendChild(label);
 
     for(var col=1;col<columnCount;col++){
@@ -100,14 +114,21 @@
           if(td){var input=td.querySelector('input[data-done]');if(input)inputs.push(input);}
         }
         if(inputs.length){
-          var box=document.createElement('input');box.type='checkbox';box.className='check';box.setAttribute('aria-label','Merkja alla í þessu verkefni');
+          var box=document.createElement('input');
+          box.type='checkbox';
+          box.className='check';
+          box.dataset.bulkAll='true';
+          box.setAttribute('aria-label','Merkja alla í þessu verkefni');
           updateAllBox(box,inputs);
           box.onchange=function(){
+            var targetState=box.checked;
             for(var j=0;j<inputs.length;j++){
-              inputs[j].checked=box.checked;
-              var ev=document.createEvent('HTMLEvents');ev.initEvent('change',true,false);inputs[j].dispatchEvent(ev);
+              inputs[j].checked=targetState;
+              fireChange(inputs[j]);
             }
+            box.checked=targetState;
             box.indeterminate=false;
+            box.disabled=false;
           };
           for(var k=0;k<inputs.length;k++)inputs[k].addEventListener('change',function(){setTimeout(function(){updateAllBox(box,inputs);},0);});
           cell.appendChild(box);
@@ -123,7 +144,7 @@
     var host=document.getElementById('todayHost');
     if(host){
       var queued=false;
-      new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;ensureNormalSelectAll();});}).observe(host,{childList:true,subtree:true});
+      new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;ensureNormalSelectAll();});}).observe(host,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled']});
       ensureNormalSelectAll();
     }
   }
