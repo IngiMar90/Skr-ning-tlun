@@ -35,3 +35,13 @@
   style.textContent = `button,.btn,.home-card,.day,.back,label.btn{touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0);position:relative;z-index:1}`;
   document.head.appendChild(style);
 })();
+
+// Load the attendance extension after the main application has initialized.
+(() => {
+  if (document.querySelector('script[data-attendance-loader]')) return;
+  const s = document.createElement('script');
+  s.src = './attendance.js?v=1';
+  s.defer = true;
+  s.dataset.attendanceLoader = '1';
+  document.head.appendChild(s);
+})();
