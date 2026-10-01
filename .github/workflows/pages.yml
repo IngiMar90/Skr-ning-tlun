@@ -56,6 +56,7 @@ jobs:
           .install-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.install-app .btn{min-height:48px;padding:12px 18px}
           .install-note{margin-top:10px!important;padding:10px 12px;border-radius:10px;background:#f8fafc;color:var(--text)!important}.install-note.hidden{display:none!important}
           .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fullscreen-btn{min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}.fullscreen-btn .fs-icon{font-size:18px;line-height:1}
+          #attendanceSetting{display:none!important}
           @media(max-width:700px){.share-app,.install-app{align-items:flex-start}.share-app img,.install-app img{width:108px;height:108px}.fullscreen-btn .fs-label{display:none}.fullscreen-btn{min-width:48px;padding:10px}}
           @media(max-width:500px){.share-app,.install-app{flex-direction:column;align-items:center;text-align:center}.share-app img,.install-app img{width:150px;height:150px}.app-url,.install-actions,.install-actions .btn{width:100%}}
           '''
@@ -63,6 +64,8 @@ jobs:
               s = s.replace('</style>', extra_css + '</style>', 1)
           elif '.fullscreen-btn{' not in s:
               s = s.replace('</style>', extra_css + '</style>', 1)
+          elif '#attendanceSetting' not in s:
+              s = s.replace('</style>', '#attendanceSetting{display:none!important}</style>', 1)
 
           qr_panel = '''<div class="panel share-app"><img src="app-qr.svg?v=${{ github.sha }}" alt="QR-kóði sem opnar Námskráningu"><div class="share-app-copy"><h3>Opna í öðru tæki</h3><p>Skannaðu QR-kóðann með myndavél á síma eða spjaldtölvu, eða opnaðu slóðina beint.</p><a class="app-url" href="https://ingimar90.github.io/Skr-ning-tlun/" target="_blank" rel="noopener">ingimar90.github.io/Skr-ning-tlun/</a></div></div>'''
 
@@ -263,13 +266,22 @@ jobs:
               current=todayIso();
               const lessons=lessonsForCurrentDay();
               const runningIndex=lessons.findIndex(lesson=>isCurrentLesson(lesson,current));
-              manualLessonIndex=runningIndex>=0?runningIndex:(lessons.length?defaultLessonIndex(lessons):0);
+              manualLessonIndex=runningIndex>=0?runningIndex+1:0;
               renderToday();
             });
           })();
           </script>'''
 
-          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script>'+sorter+installer+fullscreen+current_time_nav+'</body>')
+          force_attendance = '''<script>
+          (()=>{
+            if(typeof db==='undefined'||typeof days==='undefined')return;
+            if(!db.attendanceConfig)db.attendanceConfig={};
+            days.forEach((_,i)=>{db.attendanceConfig[i]={enabled:true};});
+            save();
+          })();
+          </script>'''
+
+          s = s.replace('</body>', '<script src="force24.js?v=${{ github.sha }}"></script><script src="attendance.js?v=${{ github.sha }}"></script>'+force_attendance+sorter+installer+fullscreen+current_time_nav+'</body>')
           p.write_text(s, encoding='utf-8')
           PY
       - name: Setup Pages
