@@ -30,7 +30,7 @@
 
   function normalizeItemOrder() {
     Object.values(db.schedule || {}).flat().forEach(lesson => {
-      if (lesson?.items) sortItems(lesson.items);
+      if (lesson && lesson.items) sortItems(lesson.items);
     });
   }
 
@@ -299,7 +299,7 @@
       }
 
       chosenDays.forEach(dayIndex => {
-        db.schedule[dayIndex] ||= [];
+        if (!db.schedule[dayIndex]) db.schedule[dayIndex] = [];
         db.schedule[dayIndex].push({ id: uid(), name, from, to, items: [], open: true });
       });
 
@@ -315,8 +315,8 @@
 
   function updateHelpText() {
     const host = document.getElementById('days');
-    const card = host?.closest('.card');
-    const help = card?.querySelector('p.help');
+    const card = host ? host.closest('.card') : null;
+    const help = card ? card.querySelector('p.help') : null;
     if (help) help.innerHTML = 'Efri dagarnir velja hvaða dag þú ert að skoða og breyta. Undir <strong>Dagar fyrir nýjan tíma</strong> geturðu valið einn eða fleiri daga í einu; smelltu aftur á dag til að afvelja hann.';
   }
 
@@ -348,14 +348,14 @@
       return;
     }
     const record = rec(current, lesson.id);
-    const checkedCount = students.filter(student => record.done?.[student.id]?.[item.id]).length;
+    const checkedCount = students.filter(student => (record.done && record.done[student.id] && record.done[student.id][item.id])).length;
     allBox.checked = checkedCount === students.length;
     allBox.indeterminate = checkedCount > 0 && checkedCount < students.length;
   }
 
   function enhanceSelectAll() {
     const host = document.getElementById('todayHost');
-    const table = host?.querySelector('table.tbl');
+    const table = host ? host.querySelector('table.tbl') : null;
     const lesson = getVisibleLesson();
     if (!table || !lesson || table.dataset.selectAllReady === 'true') return;
 
@@ -382,7 +382,7 @@
         const students = activeStudents().filter(student => item.scope !== 'student' || item.studentId === student.id);
         const record = rec(current, lesson.id);
         students.forEach(student => {
-          record.done[student.id] ||= {};
+          if (!record.done[student.id]) record.done[student.id] = {};
           record.done[student.id][item.id] = box.checked;
           const individual = table.querySelector(`[data-done="${lesson.id}|${student.id}|${item.id}"]`);
           if (individual) individual.checked = box.checked;
@@ -418,7 +418,7 @@
 
   function moveItemWithinScope(lessonId, itemId, direction) {
     const lesson = (db.schedule[selectedDay] || []).find(x => x.id === lessonId);
-    if (!lesson?.items) return;
+    if (!lesson && lesson.items) return;
     sortItems(lesson.items);
     const index = lesson.items.findIndex(x => x.id === itemId);
     if (index < 0) return;
@@ -441,7 +441,7 @@
       if (!del) return;
       const [lessonId, itemId] = del.dataset.delItem.split('|');
       const lesson = (db.schedule[selectedDay] || []).find(x => x.id === lessonId);
-      const item = lesson?.items?.find(x => x.id === itemId);
+      const item = lesson && lesson.items ? lesson.items.find(x => x.id === itemId) : null;
       if (!lesson || !item) return;
 
       sortItems(lesson.items);
