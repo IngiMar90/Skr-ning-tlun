@@ -8,7 +8,7 @@
     if (e.touches.length !== 1) { target = null; return; }
     const t = e.touches[0];
     startX = t.clientX; startY = t.clientY; startTime = Date.now();
-    target = e.target.closest?.(selector) || null;
+    target = e.target.closest ? e.target.closest(selector) : null || null;
   }, {passive:true, capture:true});
 
   document.addEventListener('touchend', e => {
