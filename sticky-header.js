@@ -40,8 +40,8 @@
 
   function rebuild(){
     const table=document.querySelector('#todayHost table.tbl');
-    const wrap=table?.closest('.table-wrap');
-    const headRow=table?.querySelector('thead tr:first-child');
+    const wrap=table ? table.closest('.table-wrap') : null;
+    const headRow=table ? table.querySelector('thead tr:first-child') : null;
     if(!table||!wrap||!headRow){cleanup();return;}
 
     ensureOverlay(table,wrap);
@@ -75,7 +75,7 @@
     if(!head) return;
     const headRect=head.getBoundingClientRect();
 
-    const shouldShow=headRect.top<0 && tableRect.bottom>headRect.height+4 && !document.getElementById('today')?.classList.contains('hidden');
+    const shouldShow=headRect.top<0 && tableRect.bottom>headRect.height+4 && !(document.getElementById('today') && document.getElementById('today').classList.contains('hidden'));
     if(!shouldShow){overlay.style.display='none';return;}
 
     overlay.style.display='block';
@@ -96,10 +96,10 @@
 
   function attach(){
     const table=document.querySelector('#todayHost table.tbl');
-    const wrap=table?.closest('.table-wrap');
+    const wrap=table ? table.closest('.table-wrap') : null;
     if(!table||!wrap){cleanup();return;}
     if(activeWrap!==wrap){
-      activeWrap?.removeEventListener('scroll',sync);
+      activeWrap && activeWrap.removeEventListener('scroll',sync);
       wrap.addEventListener('scroll',sync,{passive:true});
     }
     rebuild();
