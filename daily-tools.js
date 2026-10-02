@@ -147,6 +147,14 @@
       new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;ensureNormalSelectAll();});}).observe(host,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled']});
       ensureNormalSelectAll();
     }
+
+    if(!document.querySelector('script[data-auto-follow-loader]')){
+      var autoFollow=document.createElement('script');
+      autoFollow.src='./auto-follow.js?v=1';
+      autoFollow.defer=true;
+      autoFollow.setAttribute('data-auto-follow-loader','1');
+      document.head.appendChild(autoFollow);
+    }
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
