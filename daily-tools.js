@@ -7,12 +7,43 @@
     document.head.appendChild(style);
   }
 
-  function downloadFile(name,text,type){
+  function isIOS(){
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  }
+
+  function normalDownload(name,text,type){
     var blob=new Blob([text],{type:type});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
-    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
-    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    a.href=url;
+    a.download=name;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},3000);
+  }
+
+  async function saveBackupFile(name,text,type){
+    if(isIOS() && typeof File==='function' && navigator.share){
+      try{
+        var file=new File([text],name,{type:type});
+        if(!navigator.canShare || navigator.canShare({files:[file]})){
+          await navigator.share({title:'Námskráning – öryggisafrit',files:[file]});
+          return;
+        }
+      }catch(err){
+        if(err && err.name==='AbortError')return;
+      }
+    }
+
+    normalDownload(name,text,type);
+
+    if(isIOS()){
+      setTimeout(function(){
+        alert('Ef skráin opnast sem texti í Safari í stað þess að vistast, ýttu á Deila ⬆ og veldu „Vista í Skrár“. Þetta gerist á eldri iPad/Safari sem styður ekki beina niðurhalsskráningu.');
+      },350);
+    }
   }
 
   function installHomeBackup(){
@@ -27,7 +58,7 @@
     document.getElementById('saveRegistrationBtn').onclick=function(){
       var stamp=(typeof todayIso==='function'?todayIso():new Date().toISOString().slice(0,10));
       var payload={format:'namskraning-backup',version:1,savedAt:new Date().toISOString(),data:db};
-      downloadFile('namskraning_'+stamp+'.json',JSON.stringify(payload,null,2),'application/json');
+      saveBackupFile('namskraning_'+stamp+'.json',JSON.stringify(payload,null,2),'application/json');
     };
 
     var picker=document.getElementById('uploadRegistrationFile');
