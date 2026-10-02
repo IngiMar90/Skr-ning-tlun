@@ -190,6 +190,7 @@
 
     loadScriptOnce('script[data-auto-follow-loader]','./auto-follow.js?v=1','data-auto-follow-loader');
     loadScriptOnce('script[data-same-name-sync]','./same-name-sync.js?v=1','data-same-name-sync');
+    loadScriptOnce('script[data-timetable-grid]','./timetable-grid.js?v=1','data-timetable-grid');
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
