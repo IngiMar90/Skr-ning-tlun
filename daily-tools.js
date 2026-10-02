@@ -139,6 +139,15 @@
     thead.appendChild(row);
   }
 
+  function loadScriptOnce(selector,src,marker){
+    if(document.querySelector(selector))return;
+    var s=document.createElement('script');
+    s.src=src;
+    s.defer=true;
+    s.setAttribute(marker,'1');
+    document.head.appendChild(s);
+  }
+
   function apply(){
     addStyles();installHomeBackup();
     var host=document.getElementById('todayHost');
@@ -148,13 +157,8 @@
       ensureNormalSelectAll();
     }
 
-    if(!document.querySelector('script[data-auto-follow-loader]')){
-      var autoFollow=document.createElement('script');
-      autoFollow.src='./auto-follow.js?v=1';
-      autoFollow.defer=true;
-      autoFollow.setAttribute('data-auto-follow-loader','1');
-      document.head.appendChild(autoFollow);
-    }
+    loadScriptOnce('script[data-auto-follow-loader]','./auto-follow.js?v=1','data-auto-follow-loader');
+    loadScriptOnce('script[data-same-name-sync]','./same-name-sync.js?v=1','data-same-name-sync');
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
